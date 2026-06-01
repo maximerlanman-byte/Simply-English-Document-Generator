@@ -9,96 +9,180 @@ st.set_page_config(page_title="Simply English Document Generator", page_icon="�
 
 st.title("📄 Simply English Document Generator")
 
-st.subheader("Crear un justificante individual")
-
-nombre = st.text_input("Nombre del alumno/a")
-dni = st.text_input("DNI")
 tipo = st.selectbox(
-    "Tipo de justificante",
+    "Tipo de documento",
     [
-        "Justificante de asistencia a clase obligatoria",
-        "Justificante de examen"
+        "Justificante de clase",
+        "Justificante de examen",
+        "Justificante de asistencia a clases",
+        "Certificado de matrícula"
     ]
 )
 
-fecha = st.text_input("Fecha", "1 de junio de 2026")
-horario = st.text_input("Horario", "17:00 h a 18:30 h")
-examen = st.text_input("Examen", "Trinity ISE III")
-fechas_examen = st.text_input("Fechas del examen", "2 y 3 de junio de 2026")
-
-def crear_pdf(nombre, dni, fecha, horario, examen, fechas_examen):
+def generar_pdf(titulo, lineas):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     w, h = A4
 
-    # Fondo blanco
     c.setFillColor(colors.white)
     c.rect(0, 0, w, h, fill=1, stroke=0)
 
-    # Franja inferior aguamarina
     c.setFillColor(colors.HexColor("#DDF5F4"))
     c.rect(0, 0, w, h * 0.18, fill=1, stroke=0)
 
-    # Título
     c.setFillColor(colors.black)
     c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(w / 2, h - 3 * cm, "JUSTIFICANTE DE ASISTENCIA")
+    c.drawCentredString(w / 2, h - 3 * cm, titulo)
 
-    # Texto
-    y = h - 5 * cm
     x = 2.5 * cm
-
-    c.setFont("Helvetica", 11)
-
-    lineas = [
-        "Por la presente, Simply English certifica que el alumno/a:",
-        "",
-        nombre.upper(),
-        "",
-        f"con DNI {dni}, está matriculado/a en nuestro programa de preparación",
-        f"para exámenes oficiales de inglés y deberá asistir obligatoriamente",
-        f"a una sesión preparatoria para el examen oficial {examen} el día",
-        f"{fecha}, en horario de {horario}.",
-        "",
-        f"Dicha sesión forma parte de la preparación final para las pruebas",
-        f"oficiales que el alumno/a realizará los días {fechas_examen}.",
-        "",
-        "La asistencia a esta sesión es obligatoria para garantizar la correcta",
-        "preparación y organización previa a las pruebas oficiales.",
-        "",
-        "Y para que conste a los efectos oportunos, se expide el presente justificante.",
-        "",
-        f"En Utrera, {fecha}.",
-        "",
-        "Simply English",
-        "C/ Real 5, Local 1",
-        "41710 Utrera (Sevilla)"
-    ]
+    y = h - 5 * cm
 
     for linea in lineas:
-        if linea == nombre.upper():
+        if linea.isupper() and len(linea) > 3:
             c.setFont("Helvetica-Bold", 12)
         else:
             c.setFont("Helvetica", 11)
 
         c.drawString(x, y, linea)
-        y -= 0.55 * cm
+        y -= 0.6 * cm
 
     c.showPage()
     c.save()
     buffer.seek(0)
     return buffer
 
-if st.button("Generar PDF"):
-    if not nombre:
-        st.error("Falta el nombre del alumno/a.")
-    else:
-        pdf = crear_pdf(nombre, dni, fecha, horario, examen, fechas_examen)
-        st.success("PDF generado correctamente.")
+if tipo == "Justificante de clase":
+    nombre = st.text_input("Nombre del alumno/a")
+    dni = st.text_input("DNI")
+    fecha = st.text_input("Fecha de la clase", "1 de junio de 2026")
+    horario = st.text_input("Horario", "17:00 h a 18:30 h")
+    motivo = st.text_input("Motivo obligatorio", "sesión preparatoria obligatoria")
 
-        st.download_button(
-            label="Descargar PDF",
-            data=pdf,
-            file_name=f"Justificante_{nombre.replace(' ', '_')}.pdf",
-            mime="application/pdf"
-        )
+    if st.button("Generar PDF"):
+        lineas = [
+            "Por la presente, Simply English certifica que el alumno/a:",
+            "",
+            nombre.upper(),
+            "",
+            f"con DNI {dni}, deberá asistir obligatoriamente a clase el día",
+            f"{fecha}, en horario de {horario}.",
+            "",
+            f"Motivo: {motivo}.",
+            "",
+            "Y para que conste a los efectos oportunos, se expide el presente justificante.",
+            "",
+            f"En Utrera, {fecha}.",
+            "",
+            "Simply English",
+            "C/ Real 5, Local 1",
+            "41710 Utrera (Sevilla)"
+        ]
+        pdf = generar_pdf("JUSTIFICANTE DE ASISTENCIA", lineas)
+        st.download_button("Descargar PDF", pdf, f"Justificante_{nombre}.pdf", "application/pdf")
+
+elif tipo == "Justificante de examen":
+    nombre = st.text_input("Nombre del alumno/a")
+    dni = st.text_input("DNI")
+    examen = st.text_input("Examen", "Trinity ISE III")
+    fecha_escrito = st.text_input("Fecha examen escrito", "3 de junio de 2026")
+    horario_escrito = st.text_input("Horario examen escrito", "09:00 h a 13:00 h")
+    fecha_oral = st.text_input("Fecha examen oral", "2 de junio de 2026")
+    horario_oral = st.text_input("Horario autorizado examen oral", "14:00 h a 16:30 h")
+
+    if st.button("Generar PDF"):
+        lineas = [
+            "Por la presente, Simply English declara que el alumno/a:",
+            "",
+            nombre.upper(),
+            "",
+            f"DNI: {dni}",
+            "",
+            f"está matriculado/a para la realización del examen oficial {examen}.",
+            "",
+            "El alumno/a deberá asistir al centro para la realización de la prueba escrita el día:",
+            fecha_escrito,
+            f"Horario: de {horario_escrito}",
+            "",
+            "El alumno/a deberá asistir al centro para la realización de la prueba oral el día:",
+            fecha_oral,
+            f"Horario de asistencia autorizado: de {horario_oral}",
+            "",
+            "Este horario incluye margen adicional de una hora antes y una hora después",
+            "para organización, espera y realización de la prueba.",
+            "",
+            "Y para que conste a los efectos oportunos, se expide el presente justificante.",
+            "",
+            "En Utrera, 1 de junio de 2026.",
+            "",
+            "Simply English",
+            "C/ Real 5, Local 1",
+            "41710 Utrera (Sevilla)"
+        ]
+        pdf = generar_pdf("JUSTIFICANTE DE ASISTENCIA A EXAMEN OFICIAL", lineas)
+        st.download_button("Descargar PDF", pdf, f"Justificante_examen_{nombre}.pdf", "application/pdf")
+
+elif tipo == "Justificante de asistencia a clases":
+    nombre = st.text_input("Nombre del alumno/a")
+    dni = st.text_input("DNI")
+    curso = st.text_input("Curso / nivel")
+    dias = st.text_input("Días de clase", "lunes y miércoles")
+    horario = st.text_input("Horario", "17:00 h a 18:00 h")
+    matricula = st.text_input("Precio matrícula", "30 €")
+    materiales = st.text_input("Precio materiales", "0 €")
+    mensualidad = st.text_input("Precio mensual", "60 €")
+
+    if st.button("Generar PDF"):
+        lineas = [
+            "Por la presente, Simply English certifica que el alumno/a:",
+            "",
+            nombre.upper(),
+            "",
+            f"con DNI {dni}, asiste regularmente a clases de inglés en nuestro centro.",
+            "",
+            f"Curso / nivel: {curso}",
+            f"Días de clase: {dias}",
+            f"Horario: {horario}",
+            "",
+            f"Precio de matrícula: {matricula}",
+            f"Precio de materiales: {materiales}",
+            f"Precio mensual: {mensualidad}",
+            "",
+            "Asimismo, hacemos constar que el alumno/a sí asiste a clase",
+            "según el horario indicado.",
+            "",
+            "Y para que conste a los efectos oportunos, se expide el presente justificante.",
+            "",
+            "En Utrera, 1 de junio de 2026.",
+            "",
+            "Simply English",
+            "C/ Real 5, Local 1",
+            "41710 Utrera (Sevilla)"
+        ]
+        pdf = generar_pdf("JUSTIFICANTE DE ASISTENCIA A CLASES", lineas)
+        st.download_button("Descargar PDF", pdf, f"Asistencia_clases_{nombre}.pdf", "application/pdf")
+
+elif tipo == "Certificado de matrícula":
+    nombre = st.text_input("Nombre del alumno/a")
+    dni = st.text_input("DNI")
+    curso = st.text_input("Curso / nivel")
+    ano = st.text_input("Año académico", "2025/2026")
+
+    if st.button("Generar PDF"):
+        lineas = [
+            "Por la presente, Simply English certifica que el alumno/a:",
+            "",
+            nombre.upper(),
+            "",
+            f"con DNI {dni}, se encuentra matriculado/a en nuestro centro",
+            f"en el curso/nivel {curso}, correspondiente al año académico {ano}.",
+            "",
+            "Y para que conste a los efectos oportunos, se expide el presente certificado.",
+            "",
+            "En Utrera, 1 de junio de 2026.",
+            "",
+            "Simply English",
+            "C/ Real 5, Local 1",
+            "41710 Utrera (Sevilla)"
+        ]
+        pdf = generar_pdf("CERTIFICADO DE MATRÍCULA", lineas)
+        st.download_button("Descargar PDF", pdf, f"Certificado_matricula_{nombre}.pdf", "application/pdf")
