@@ -11,17 +11,19 @@ st.set_page_config(page_title="Simply English Document Generator", page_icon="�
 
 st.title("📄 Simply English Document Generator")
 
-modo = st.radio(
-    "Modo",
-    ["Individual", "Excel Masivo"]
-)
+modo = st.radio("Modo", ["Individual", "Excel Masivo"])
 
 tipos_documento = [
     "Justificante de clase",
     "Justificante de examen",
     "Justificante de asistencia a clases",
-    "Certificado de matrícula"
 ]
+
+
+def limpiar(valor):
+    if pd.isna(valor):
+        return ""
+    return str(valor).strip()
 
 
 def generar_pdf(titulo, lineas):
@@ -43,7 +45,7 @@ def generar_pdf(titulo, lineas):
     y = h - 5 * cm
 
     for linea in lineas:
-        linea = "" if pd.isna(linea) else str(linea)
+        linea = limpiar(linea)
 
         if linea.isupper() and len(linea) > 3:
             c.setFont("Helvetica-Bold", 12)
@@ -59,7 +61,14 @@ def generar_pdf(titulo, lineas):
     return buffer
 
 
-def lineas_justificante_clase(nombre, dni, fecha, horario, motivo):
+def lineas_justificante_clase(datos):
+    nombre = limpiar(datos.get("nombre_alumno", ""))
+    dni = limpiar(datos.get("dni", ""))
+    fecha = limpiar(datos.get("fecha_clase", ""))
+    horario = limpiar(datos.get("horario", ""))
+    motivo = limpiar(datos.get("motivo_obligatorio", ""))
+    fecha_emision = limpiar(datos.get("fecha_emision", fecha))
+
     return [
         "Por la presente, Simply English certifica que el alumno/a:",
         "",
@@ -72,7 +81,7 @@ def lineas_justificante_clase(nombre, dni, fecha, horario, motivo):
         "",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
         "",
-        f"En Utrera, {fecha}.",
+        f"En Utrera, {fecha_emision}.",
         "",
         "Simply English",
         "C/ Real 5, Local 1",
@@ -80,7 +89,16 @@ def lineas_justificante_clase(nombre, dni, fecha, horario, motivo):
     ]
 
 
-def lineas_justificante_examen(nombre, dni, examen, fecha_escrito, horario_escrito, fecha_oral, horario_oral):
+def lineas_justificante_examen(datos):
+    nombre = limpiar(datos.get("nombre_alumno", ""))
+    dni = limpiar(datos.get("dni", ""))
+    examen = limpiar(datos.get("examen", ""))
+    fecha_escrito = limpiar(datos.get("fecha_escrito", ""))
+    horario_escrito = limpiar(datos.get("horario_escrito", ""))
+    fecha_oral = limpiar(datos.get("fecha_oral", ""))
+    horario_oral = limpiar(datos.get("horario_oral_autorizado", ""))
+    fecha_emision = limpiar(datos.get("fecha_emision", ""))
+
     return [
         "Por la presente, Simply English declara que el alumno/a:",
         "",
@@ -103,7 +121,7 @@ def lineas_justificante_examen(nombre, dni, examen, fecha_escrito, horario_escri
         "",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
         "",
-        "En Utrera, 1 de junio de 2026.",
+        f"En Utrera, {fecha_emision}.",
         "",
         "Simply English",
         "C/ Real 5, Local 1",
@@ -111,7 +129,18 @@ def lineas_justificante_examen(nombre, dni, examen, fecha_escrito, horario_escri
     ]
 
 
-def lineas_asistencia_clases(nombre, dni, curso, dias, horario, matricula, materiales, mensualidad):
+def lineas_asistencia_clases(datos):
+    nombre = limpiar(datos.get("nombre_alumno", ""))
+    dni = limpiar(datos.get("dni", ""))
+    curso = limpiar(datos.get("curso_nivel", ""))
+    dias = limpiar(datos.get("dias_clase", ""))
+    horario = limpiar(datos.get("horario", ""))
+    matricula = limpiar(datos.get("precio_matricula", ""))
+    materiales = limpiar(datos.get("precio_materiales", ""))
+    mensualidad = limpiar(datos.get("precio_mensual", ""))
+    fecha_emision = limpiar(datos.get("fecha_emision", ""))
+    observaciones = limpiar(datos.get("observaciones", ""))
+
     return [
         "Por la presente, Simply English certifica que el alumno/a:",
         "",
@@ -127,31 +156,11 @@ def lineas_asistencia_clases(nombre, dni, curso, dias, horario, matricula, mater
         f"Precio de materiales: {materiales}",
         f"Precio mensual: {mensualidad}",
         "",
-        "Asimismo, hacemos constar que el alumno/a sí asiste a clase",
-        "según el horario indicado.",
+        observaciones,
         "",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
         "",
-        "En Utrera, 1 de junio de 2026.",
-        "",
-        "Simply English",
-        "C/ Real 5, Local 1",
-        "41710 Utrera (Sevilla)"
-    ]
-
-
-def lineas_certificado_matricula(nombre, dni, curso, ano):
-    return [
-        "Por la presente, Simply English certifica que el alumno/a:",
-        "",
-        nombre.upper(),
-        "",
-        f"con DNI {dni}, se encuentra matriculado/a en nuestro centro",
-        f"en el curso/nivel {curso}, correspondiente al año académico {ano}.",
-        "",
-        "Y para que conste a los efectos oportunos, se expide el presente certificado.",
-        "",
-        "En Utrera, 1 de junio de 2026.",
+        f"En Utrera, {fecha_emision}.",
         "",
         "Simply English",
         "C/ Real 5, Local 1",
@@ -161,190 +170,128 @@ def lineas_certificado_matricula(nombre, dni, curso, ano):
 
 def crear_pdf_por_tipo(tipo, datos):
     if tipo == "Justificante de clase":
-        lineas = lineas_justificante_clase(
-            datos.get("nombre", ""),
-            datos.get("dni", ""),
-            datos.get("fecha", ""),
-            datos.get("horario", ""),
-            datos.get("motivo", "")
-        )
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA", lineas)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA", lineas_justificante_clase(datos))
 
     if tipo == "Justificante de examen":
-        lineas = lineas_justificante_examen(
-            datos.get("nombre", ""),
-            datos.get("dni", ""),
-            datos.get("examen", ""),
-            datos.get("fecha_escrito", ""),
-            datos.get("horario_escrito", ""),
-            datos.get("fecha_oral", ""),
-            datos.get("horario_oral", "")
-        )
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A EXAMEN OFICIAL", lineas)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A EXAMEN OFICIAL", lineas_justificante_examen(datos))
 
     if tipo == "Justificante de asistencia a clases":
-        lineas = lineas_asistencia_clases(
-            datos.get("nombre", ""),
-            datos.get("dni", ""),
-            datos.get("curso", ""),
-            datos.get("dias", ""),
-            datos.get("horario", ""),
-            datos.get("matricula", ""),
-            datos.get("materiales", ""),
-            datos.get("mensualidad", "")
-        )
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A CLASES", lineas)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A CLASES", lineas_asistencia_clases(datos))
 
-    if tipo == "Certificado de matrícula":
-        lineas = lineas_certificado_matricula(
-            datos.get("nombre", ""),
-            datos.get("dni", ""),
-            datos.get("curso", ""),
-            datos.get("ano", "")
-        )
-        return generar_pdf("CERTIFICADO DE MATRÍCULA", lineas)
+
+def sheet_por_tipo(tipo):
+    if tipo == "Justificante de clase":
+        return "Justificante_Clase"
+    if tipo == "Justificante de examen":
+        return "Justificante_Examen"
+    if tipo == "Justificante de asistencia a clases":
+        return "Asistencia_Clases"
 
 
 if modo == "Individual":
-
     tipo = st.selectbox("Tipo de documento", tipos_documento)
 
     if tipo == "Justificante de clase":
-        nombre = st.text_input("Nombre del alumno/a")
-        dni = st.text_input("DNI")
-        fecha = st.text_input("Fecha de la clase", "1 de junio de 2026")
-        horario = st.text_input("Horario", "17:00 h a 18:30 h")
-        motivo = st.text_input("Motivo obligatorio", "sesión preparatoria obligatoria")
-
-        if st.button("Generar PDF"):
-            datos = {
-                "nombre": nombre,
-                "dni": dni,
-                "fecha": fecha,
-                "horario": horario,
-                "motivo": motivo
-            }
-            pdf = crear_pdf_por_tipo(tipo, datos)
-            st.download_button(
-                "Descargar PDF",
-                pdf,
-                f"Justificante_{nombre.replace(' ', '_')}.pdf",
-                "application/pdf"
-            )
+        datos = {
+            "nombre_alumno": st.text_input("Nombre del alumno/a"),
+            "dni": st.text_input("DNI"),
+            "fecha_clase": st.text_input("Fecha de la clase", "1 de junio de 2026"),
+            "horario": st.text_input("Horario", "17:00 h a 18:30 h"),
+            "motivo_obligatorio": st.text_input("Motivo obligatorio"),
+            "fecha_emision": st.text_input("Fecha de emisión", "1 de junio de 2026"),
+        }
 
     elif tipo == "Justificante de examen":
-        nombre = st.text_input("Nombre del alumno/a")
-        dni = st.text_input("DNI")
-        examen = st.text_input("Examen", "Trinity ISE III")
-        fecha_escrito = st.text_input("Fecha examen escrito", "3 de junio de 2026")
-        horario_escrito = st.text_input("Horario examen escrito", "09:00 h a 13:00 h")
-        fecha_oral = st.text_input("Fecha examen oral", "2 de junio de 2026")
-        horario_oral = st.text_input("Horario autorizado examen oral", "14:00 h a 16:30 h")
-
-        if st.button("Generar PDF"):
-            datos = {
-                "nombre": nombre,
-                "dni": dni,
-                "examen": examen,
-                "fecha_escrito": fecha_escrito,
-                "horario_escrito": horario_escrito,
-                "fecha_oral": fecha_oral,
-                "horario_oral": horario_oral
-            }
-            pdf = crear_pdf_por_tipo(tipo, datos)
-            st.download_button(
-                "Descargar PDF",
-                pdf,
-                f"Justificante_examen_{nombre.replace(' ', '_')}.pdf",
-                "application/pdf"
-            )
+        datos = {
+            "nombre_alumno": st.text_input("Nombre del alumno/a"),
+            "dni": st.text_input("DNI"),
+            "examen": st.text_input("Examen", "Trinity ISE III"),
+            "fecha_escrito": st.text_input("Fecha examen escrito", "3 de junio de 2026"),
+            "horario_escrito": st.text_input("Horario examen escrito", "09:00 h a 13:00 h"),
+            "fecha_oral": st.text_input("Fecha examen oral", "2 de junio de 2026"),
+            "horario_oral_autorizado": st.text_input("Horario oral autorizado", "14:00 h a 16:30 h"),
+            "fecha_emision": st.text_input("Fecha de emisión", "1 de junio de 2026"),
+        }
 
     elif tipo == "Justificante de asistencia a clases":
-        nombre = st.text_input("Nombre del alumno/a")
-        dni = st.text_input("DNI")
-        curso = st.text_input("Curso / nivel")
-        dias = st.text_input("Días de clase", "lunes y miércoles")
-        horario = st.text_input("Horario", "17:00 h a 18:00 h")
-        matricula = st.text_input("Precio matrícula", "30 €")
-        materiales = st.text_input("Precio materiales", "0 €")
-        mensualidad = st.text_input("Precio mensual", "60 €")
+        datos = {
+            "nombre_alumno": st.text_input("Nombre del alumno/a"),
+            "dni": st.text_input("DNI"),
+            "curso_nivel": st.text_input("Curso / nivel"),
+            "dias_clase": st.text_input("Días de clase", "lunes y miércoles"),
+            "horario": st.text_input("Horario", "17:00 h a 18:00 h"),
+            "precio_matricula": st.text_input("Precio matrícula", "30 €"),
+            "precio_materiales": st.text_input("Precio materiales", "45 €"),
+            "precio_mensual": st.text_input("Precio mensual", "60 €/mes"),
+            "fecha_emision": st.text_input("Fecha de emisión", "1 de junio de 2026"),
+            "observaciones": st.text_input("Observaciones", "El alumno/a asiste regularmente a clase."),
+        }
 
-        if st.button("Generar PDF"):
-            datos = {
-                "nombre": nombre,
-                "dni": dni,
-                "curso": curso,
-                "dias": dias,
-                "horario": horario,
-                "matricula": matricula,
-                "materiales": materiales,
-                "mensualidad": mensualidad
-            }
+    if st.button("Generar PDF"):
+        nombre = limpiar(datos.get("nombre_alumno", "alumno"))
+        if nombre == "":
+            st.error("Falta el nombre del alumno/a.")
+        else:
             pdf = crear_pdf_por_tipo(tipo, datos)
             st.download_button(
                 "Descargar PDF",
                 pdf,
-                f"Asistencia_clases_{nombre.replace(' ', '_')}.pdf",
-                "application/pdf"
-            )
-
-    elif tipo == "Certificado de matrícula":
-        nombre = st.text_input("Nombre del alumno/a")
-        dni = st.text_input("DNI")
-        curso = st.text_input("Curso / nivel")
-        ano = st.text_input("Año académico", "2025/2026")
-
-        if st.button("Generar PDF"):
-            datos = {
-                "nombre": nombre,
-                "dni": dni,
-                "curso": curso,
-                "ano": ano
-            }
-            pdf = crear_pdf_por_tipo(tipo, datos)
-            st.download_button(
-                "Descargar PDF",
-                pdf,
-                f"Certificado_matricula_{nombre.replace(' ', '_')}.pdf",
+                f"{tipo.replace(' ', '_')}_{nombre.replace(' ', '_')}.pdf",
                 "application/pdf"
             )
 
 
 elif modo == "Excel Masivo":
-
     st.subheader("Generar varios documentos desde Excel")
 
     tipo = st.selectbox("Tipo de documento", tipos_documento)
-
-    archivo = st.file_uploader("Subir Excel", type=["xlsx"])
+    archivo = st.file_uploader("Subir Excel maestro", type=["xlsx"])
 
     if archivo is not None:
-        df = pd.read_excel(archivo)
-        st.success("Excel cargado correctamente.")
-        st.dataframe(df)
+        sheet_name = sheet_por_tipo(tipo)
 
-        st.info("El Excel debe tener las columnas necesarias para el tipo de documento elegido.")
+        try:
+            df = pd.read_excel(archivo, sheet_name=sheet_name)
+        except Exception as e:
+            st.error(f"No se pudo leer la pestaña {sheet_name}. Revisa el Excel.")
+            st.stop()
+
+        df.columns = [str(col).strip() for col in df.columns]
+        df = df.dropna(how="all")
+
+        st.success(f"Excel cargado correctamente. Pestaña leída: {sheet_name}")
+        st.dataframe(df)
 
         if st.button("Generar ZIP"):
             zip_buffer = BytesIO()
+            documentos_creados = 0
 
             with zipfile.ZipFile(zip_buffer, "w", zipfile.ZIP_DEFLATED) as zip_file:
                 for index, fila in df.iterrows():
                     datos = fila.to_dict()
+                    nombre = limpiar(datos.get("nombre_alumno", ""))
+
+                    if nombre == "":
+                        continue
+
                     pdf = crear_pdf_por_tipo(tipo, datos)
 
-                    nombre = str(datos.get("nombre", f"alumno_{index+1}")).replace(" ", "_")
-                    filename = f"{tipo.replace(' ', '_')}_{nombre}.pdf"
+                    nombre_archivo = nombre.replace(" ", "_")
+                    filename = f"{tipo.replace(' ', '_')}_{nombre_archivo}.pdf"
 
                     zip_file.writestr(filename, pdf.getvalue())
+                    documentos_creados += 1
 
             zip_buffer.seek(0)
 
-            st.success("ZIP generado correctamente.")
+            if documentos_creados == 0:
+                st.error("No se ha creado ningún documento. Revisa que la pestaña tenga nombre_alumno.")
+            else:
+                st.success(f"ZIP generado correctamente con {documentos_creados} documento(s).")
 
-            st.download_button(
-                "Descargar ZIP",
-                zip_buffer,
-                "documentos_simply_english.zip",
-                "application/zip"
-            )
+                st.download_button(
+                    "Descargar ZIP",
+                    zip_buffer,
+                    "documentos_simply_english.zip",
+                    "application/zip"
+                )
