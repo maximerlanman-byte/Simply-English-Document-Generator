@@ -4,12 +4,39 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.pagesizes import A4
 from reportlab.lib.units import cm
 from reportlab.lib import colors
+from reportlab.pdfbase import pdfmetrics
+from reportlab.pdfbase.ttfonts import TTFont
 from io import BytesIO
 import zipfile
+import textwrap
+import os
 
 st.set_page_config(page_title="Simply English Document Generator", page_icon="📄")
 
 st.title("📄 Simply English Document Generator")
+
+TEMPLATE_PATH = "assets/A4_template.png"
+FONT_REGULAR = "assets/OpenSans-Regular.ttf"
+FONT_BOLD = "assets/OpenSans-Bold.ttf"
+
+if os.path.exists(FONT_REGULAR):
+    pdfmetrics.registerFont(TTFont("OpenSans", FONT_REGULAR))
+else:
+    st.warning("OpenSans-Regular.ttf not found. Using Helvetica.")
+    
+if os.path.exists(FONT_BOLD):
+    pdfmetrics.registerFont(TTFont("OpenSans-Bold", FONT_BOLD))
+else:
+    st.warning("OpenSans-Bold.ttf not found. Using Helvetica-Bold.")
+
+
+def font_regular():
+    return "OpenSans" if os.path.exists(FONT_REGULAR) else "Helvetica"
+
+
+def font_bold():
+    return "OpenSans-Bold" if os.path.exists(FONT_BOLD) else "Helvetica-Bold"
+
 
 modo = st.radio("Modo", ["Individual", "Excel Masivo"])
 
@@ -26,34 +53,64 @@ def limpiar(valor):
     return str(valor).strip()
 
 
-def generar_pdf(titulo, lineas):
+def draw_wrapped_text(c, text, x, y, max_chars=92, line_height=0.55 * cm, bold=False):
+    if text is None:
+        return y
+
+    text = str(text).strip()
+
+    if text == "":
+        return y - line_height
+
+    font_name = font_bold() if bold else font_regular()
+    font_size = 10.5
+
+    c.setFont(font_name, font_size)
+
+    wrapped = textwrap.wrap(text, width=max_chars)
+
+    for line in wrapped:
+        c.drawString(x, y, line)
+        y -= line_height
+
+    return y
+
+
+def generar_pdf(titulo, lineas, fecha_emision=""):
     buffer = BytesIO()
     c = canvas.Canvas(buffer, pagesize=A4)
     w, h = A4
 
-    c.setFillColor(colors.white)
-    c.rect(0, 0, w, h, fill=1, stroke=0)
+    # Background template
+    if os.path.exists(TEMPLATE_PATH):
+        c.drawImage(TEMPLATE_PATH, 0, 0, width=w, height=h)
+    else:
+        c.setFillColor(colors.white)
+        c.rect(0, 0, w, h, fill=1, stroke=0)
 
-    c.setFillColor(colors.HexColor("#DDF5F4"))
-    c.rect(0, 0, w, h * 0.18, fill=1, stroke=0)
-
+    # Title
     c.setFillColor(colors.black)
-    c.setFont("Helvetica-Bold", 16)
-    c.drawCentredString(w / 2, h - 3 * cm, titulo)
+    c.setFont(font_bold(), 15)
+    c.drawCentredString(w / 2, h - 6.2 * cm, titulo)
 
-    x = 2.5 * cm
-    y = h - 5 * cm
+    # Main text area
+    x = 2.7 * cm
+    y = h - 7.8 * cm
 
-    for linea in lineas:
-        linea = limpiar(linea)
-
-        if linea.isupper() and len(linea) > 3:
-            c.setFont("Helvetica-Bold", 12)
+    for item in lineas:
+        if isinstance(item, dict):
+            texto = item.get("text", "")
+            bold = item.get("bold", False)
         else:
-            c.setFont("Helvetica", 11)
+            texto = item
+            bold = False
 
-        c.drawString(x, y, linea)
-        y -= 0.6 * cm
+        y = draw_wrapped_text(c, texto, x, y, max_chars=90, line_height=0.55 * cm, bold=bold)
+
+    # Date above signature area
+    if fecha_emision:
+        c.setFont(font_regular(), 10.5)
+        c.drawString(2.7 * cm, 4.1 * cm, f"En Utrera, {fecha_emision}.")
 
     c.showPage()
     c.save()
@@ -69,24 +126,15 @@ def lineas_justificante_clase(datos):
     motivo = limpiar(datos.get("motivo_obligatorio", ""))
     fecha_emision = limpiar(datos.get("fecha_emision", fecha))
 
-    return [
+    lineas = [
         "Por la presente, Simply English certifica que el alumno/a:",
-        "",
-        nombre.upper(),
-        "",
-        f"con DNI {dni}, deberá asistir obligatoriamente a clase el día",
-        f"{fecha}, en horario de {horario}.",
-        "",
+        {"text": nombre.upper(), "bold": True},
+        f"con DNI {dni}, deberá asistir obligatoriamente a clase el día {fecha}, en horario de {horario}.",
         f"Motivo: {motivo}.",
-        "",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
-        "",
-        f"En Utrera, {fecha_emision}.",
-        "",
-        "Simply English",
-        "C/ Real 5, Local 1",
-        "41710 Utrera (Sevilla)"
     ]
+
+    return lineas, fecha_emision
 
 
 def lineas_justificante_examen(datos):
@@ -99,34 +147,19 @@ def lineas_justificante_examen(datos):
     horario_oral = limpiar(datos.get("horario_oral_autorizado", ""))
     fecha_emision = limpiar(datos.get("fecha_emision", ""))
 
-    return [
+    lineas = [
         "Por la presente, Simply English declara que el alumno/a:",
-        "",
-        nombre.upper(),
-        "",
+        {"text": nombre.upper(), "bold": True},
         f"DNI: {dni}",
-        "",
         f"está matriculado/a para la realización del examen oficial {examen}.",
-        "",
-        "El alumno/a deberá asistir al centro para la realización de la prueba escrita el día:",
-        fecha_escrito,
-        f"Horario: de {horario_escrito}",
-        "",
-        "El alumno/a deberá asistir al centro para la realización de la prueba oral el día:",
-        fecha_oral,
-        f"Horario de asistencia autorizado: de {horario_oral}",
-        "",
-        "Este horario incluye margen adicional de una hora antes y una hora después",
-        "para organización, espera y realización de la prueba.",
-        "",
+        f"El alumno/a deberá asistir al centro para la realización de la prueba escrita el día {fecha_escrito}, en horario de {horario_escrito}.",
+        f"El alumno/a deberá asistir al centro para la realización de la prueba oral el día {fecha_oral}.",
+        f"Horario de asistencia autorizado para la prueba oral: de {horario_oral}.",
+        "Este horario incluye margen adicional de una hora antes y una hora después para organización, espera y realización de la prueba.",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
-        "",
-        f"En Utrera, {fecha_emision}.",
-        "",
-        "Simply English",
-        "C/ Real 5, Local 1",
-        "41710 Utrera (Sevilla)"
     ]
+
+    return lineas, fecha_emision
 
 
 def lineas_asistencia_clases(datos):
@@ -139,44 +172,37 @@ def lineas_asistencia_clases(datos):
     materiales = limpiar(datos.get("precio_materiales", ""))
     mensualidad = limpiar(datos.get("precio_mensual", ""))
     fecha_emision = limpiar(datos.get("fecha_emision", ""))
-    observaciones = limpiar(datos.get("observaciones", ""))
+    observaciones = limpiar(datos.get("observaciones", "El alumno/a asiste regularmente a clase."))
 
-    return [
+    lineas = [
         "Por la presente, Simply English certifica que el alumno/a:",
-        "",
-        nombre.upper(),
-        "",
+        {"text": nombre.upper(), "bold": True},
         f"con DNI {dni}, asiste regularmente a clases de inglés en nuestro centro.",
-        "",
         f"Curso / nivel: {curso}",
         f"Días de clase: {dias}",
         f"Horario: {horario}",
-        "",
         f"Precio de matrícula: {matricula}",
         f"Precio de materiales: {materiales}",
         f"Precio mensual: {mensualidad}",
-        "",
         observaciones,
-        "",
         "Y para que conste a los efectos oportunos, se expide el presente justificante.",
-        "",
-        f"En Utrera, {fecha_emision}.",
-        "",
-        "Simply English",
-        "C/ Real 5, Local 1",
-        "41710 Utrera (Sevilla)"
     ]
+
+    return lineas, fecha_emision
 
 
 def crear_pdf_por_tipo(tipo, datos):
     if tipo == "Justificante de clase":
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA", lineas_justificante_clase(datos))
+        lineas, fecha_emision = lineas_justificante_clase(datos)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA", lineas, fecha_emision)
 
     if tipo == "Justificante de examen":
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A EXAMEN OFICIAL", lineas_justificante_examen(datos))
+        lineas, fecha_emision = lineas_justificante_examen(datos)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A EXAMEN OFICIAL", lineas, fecha_emision)
 
     if tipo == "Justificante de asistencia a clases":
-        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A CLASES", lineas_asistencia_clases(datos))
+        lineas, fecha_emision = lineas_asistencia_clases(datos)
+        return generar_pdf("JUSTIFICANTE DE ASISTENCIA A CLASES", lineas, fecha_emision)
 
 
 def sheet_por_tipo(tipo):
@@ -252,7 +278,7 @@ elif modo == "Excel Masivo":
 
         try:
             df = pd.read_excel(archivo, sheet_name=sheet_name)
-        except Exception as e:
+        except Exception:
             st.error(f"No se pudo leer la pestaña {sheet_name}. Revisa el Excel.")
             st.stop()
 
