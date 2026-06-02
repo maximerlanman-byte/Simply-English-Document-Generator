@@ -90,12 +90,12 @@ def generar_pdf(titulo, lineas, fecha_emision=""):
 
     # Title
     c.setFillColor(colors.black)
-    c.setFont(font_bold(), 15)
-    c.drawCentredString(w / 2, h - 6.2 * cm, titulo)
+    c.setFont(font_bold(), 13.5)
+    c.drawCentredString(w / 2, h - 7.1 * cm, titulo)
 
     # Main text area
     x = 2.7 * cm
-    y = h - 7.8 * cm
+    y = h - 8.7 * cm
 
     for item in lineas:
         if isinstance(item, dict):
