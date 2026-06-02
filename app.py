@@ -53,14 +53,15 @@ def limpiar(valor):
     return str(valor).strip()
 
 
-def draw_wrapped_text(c, text, x, y, max_chars=92, line_height=0.55 * cm, bold=False):
+def draw_wrapped_text(c, text, x, y, max_chars=90, line_height=0.50 * cm, bold=False):
     if text is None:
         return y
 
     text = str(text).strip()
 
+    # Blank line = real paragraph space
     if text == "":
-        return y - (line_height * 2.2)
+        return y - 0.65 * cm
 
     font_name = font_bold() if bold else font_regular()
     font_size = 10.5
@@ -73,7 +74,8 @@ def draw_wrapped_text(c, text, x, y, max_chars=92, line_height=0.55 * cm, bold=F
         c.drawString(x, y, line)
         y -= line_height
 
-    return y
+    # Extra space after every paragraph
+    return y - 0.25 * cm
 
 
 def generar_pdf(titulo, lineas, fecha_emision=""):
