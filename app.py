@@ -60,7 +60,7 @@ def draw_wrapped_text(c, text, x, y, max_chars=92, line_height=0.55 * cm, bold=F
     text = str(text).strip()
 
     if text == "":
-        return y - line_height
+        return y - (line_height * 2.2)
 
     font_name = font_bold() if bold else font_regular()
     font_size = 10.5
@@ -150,6 +150,7 @@ def lineas_justificante_examen(datos):
     lineas = [
         "Por la presente, Simply English declara que el alumno/a:",
         {"text": nombre.upper(), "bold": True},
+        "",
         f"DNI: {dni}",
         f"está matriculado/a para la realización del examen oficial {examen}.",
         f"El alumno/a deberá asistir al centro para la realización de la prueba escrita el día {fecha_escrito}, en horario de {horario_escrito}.",
