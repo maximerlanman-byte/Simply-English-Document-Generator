@@ -153,7 +153,7 @@ def lineas_justificante_examen(datos):
         "Por la presente, Simply English declara que el alumno/a:",
         {"text": nombre.upper(), "bold": True},
         "",
-        f"DNI: {dni}",
+        {"text": f"DNI: {dni}", "bold": True},
         f"está matriculado/a para la realización del examen oficial {examen}.",
         f"El alumno/a deberá asistir al centro para la realización de la prueba escrita el día {fecha_escrito}, en horario de {horario_escrito}.",
         f"El alumno/a deberá asistir al centro para la realización de la prueba oral el día {fecha_oral}.",
